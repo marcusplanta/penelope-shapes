@@ -20,7 +20,6 @@
             min-height: 100vh;
             overflow: hidden;
             position: relative;
-            touch-action: none;
         }
 
         /* Animated background stars */
@@ -74,29 +73,12 @@
         }
 
         .shape-slots {
-            display: flex;
-            flex-direction: row;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
             gap: 40px;
-            justify-content: center;
-            flex-wrap: nowrap;
-            overflow-x: auto;
+            justify-items: center;
             padding: 10px 0;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255,255,255,0.5) transparent;
-        }
-
-        .shape-slots::-webkit-scrollbar {
-            height: 8px;
-        }
-
-        .shape-slots::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .shape-slots::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.5);
-            border-radius: 4px;
         }
 
         @media (max-width: 1024px) {
@@ -131,18 +113,12 @@
             }
             
             .shape-slots {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                grid-template-rows: 1fr 1fr;
                 gap: 20px;
-                justify-items: center;
-                overflow-x: visible;
             }
             
             .slot {
                 width: 140px;
                 height: 140px;
-                flex-shrink: 0;
             }
             
             .shape {
@@ -151,12 +127,7 @@
             }
             
             .shape-pieces {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                grid-template-rows: 1fr 1fr;
                 gap: 20px;
-                justify-items: center;
-                min-height: auto;
             }
             
             .reset-btn {
@@ -233,10 +204,10 @@
         }
 
         .shape-pieces {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 25px;
+            justify-items: center;
             min-height: 200px;
         }
 
@@ -247,6 +218,7 @@
             transition: transform 0.2s ease;
             filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
             position: relative;
+            touch-action: none;
         }
 
         .shape:active {
@@ -484,20 +456,26 @@
             e.preventDefault();
             if (draggedElement) {
                 const touch = e.changedTouches[0];
+                
+                // Temporarily hide the dragged element so elementFromPoint can see what's underneath
+                draggedElement.style.pointerEvents = 'none';
                 const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+                draggedElement.style.pointerEvents = '';
+                
                 const slot = dropTarget?.closest('.slot');
                 
                 if (slot) {
                     checkAndPlaceShape(slot);
+                } else {
+                    // Not dropped on a slot, return to original position
+                    draggedElement.classList.remove('dragging');
+                    draggedElement.style.position = '';
+                    draggedElement.style.zIndex = '';
+                    draggedElement.style.left = '';
+                    draggedElement.style.top = '';
                 }
                 
-                draggedElement.classList.remove('dragging');
-                draggedElement.style.position = '';
-                draggedElement.style.zIndex = '';
-                draggedElement.style.left = '';
-                draggedElement.style.top = '';
                 draggedElement = null;
-                
                 document.querySelectorAll('.slot').forEach(s => s.classList.remove('highlight'));
             }
         }
@@ -543,6 +521,14 @@
 
         function checkAndPlaceShape(slot) {
             if (!draggedElement || slot.classList.contains('filled')) {
+                // Reset the dragged element if we can't place it
+                if (draggedElement) {
+                    draggedElement.classList.remove('dragging');
+                    draggedElement.style.position = '';
+                    draggedElement.style.zIndex = '';
+                    draggedElement.style.left = '';
+                    draggedElement.style.top = '';
+                }
                 return;
             }
             
@@ -574,11 +560,18 @@
                     }, 500);
                 }
             } else {
-                // Wrong match - shake animation
+                // Wrong match - shake animation and reset element
                 slot.style.animation = 'none';
                 setTimeout(() => {
                     slot.style.animation = '';
                 }, 10);
+                
+                // Reset the dragged element
+                draggedElement.classList.remove('dragging');
+                draggedElement.style.position = '';
+                draggedElement.style.zIndex = '';
+                draggedElement.style.left = '';
+                draggedElement.style.top = '';
             }
             
             draggedElement = null;
