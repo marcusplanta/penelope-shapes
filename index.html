@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penelope's Animal Shape Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&family=Chewy&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated background stars */
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .title {
+            font-family: 'Chewy', cursive;
+            font-size: clamp(2rem, 8vw, 4rem);
+            color: #fff;
+            text-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .game-board {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 40px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .shape-slots {
+            display: flex;
+            flex-direction: row;
+            gap: 40px;
+            justify-content: center;
+            flex-wrap: nowrap;
+        }
+
+        .slot {
+            width: 200px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .slot svg {
+            width: 100%;
+            height: 100%;
+            opacity: 0.3;
+        }
+        
+        .slot.highlight svg {
+            opacity: 0.5;
+        }
+
+        .slot.highlight {
+            transform: scale(1.05);
+        }
+
+        .slot.filled svg {
+            opacity: 1;
+        }
+
+        .shape-pieces {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 25px;
+            min-height: 200px;
+        }
+
+        .shape {
+            width: 160px;
+            height: 160px;
+            cursor: grab;
+            transition: transform 0.2s ease;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+            position: relative;
+        }
+
+        .shape:active {
+            cursor: grabbing;
+        }
+
+        .shape:hover {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .shape.dragging {
+            opacity: 0.5;
+            transform: scale(1.2);
+        }
+
+        .shape.placed {
+            animation: pop 0.5s ease;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5) rotate(0deg); }
+            50% { transform: scale(1.2) rotate(10deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        .celebration {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 6rem;
+            animation: celebrate 1s ease;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        @keyframes celebrate {
+            0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.5) rotate(180deg); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1) rotate(360deg); opacity: 0; }
+        }
+
+        .reset-btn {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.5rem;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(255,165,0,0.4);
+            transition: all 0.3s ease;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            align-self: center;
+        }
+
+        .reset-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255,165,0,0.5);
+        }
+
+        .reset-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Shape SVG styling */
+        .shape svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: confetti-fall 2s ease-out forwards;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background stars -->
+    <script>
+        for(let i = 0; i < 20; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.width = Math.random() * 3 + 1 + 'px';
+            star.style.height = star.style.width;
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            document.body.appendChild(star);
+        }
+    </script>
+
+    <div class="container">
+        <h1 class="title">🎨 Penelope's Shapes! 🎨</h1>
+        
+        <div class="game-board">
+            <div class="shape-slots" id="slots">
+                <!-- Slots will be created by JavaScript -->
+            </div>
+            
+            <div class="shape-pieces" id="pieces">
+                <!-- Pieces will be created by JavaScript -->
+            </div>
+            
+            <button class="reset-btn" onclick="resetGame()">🔄 Play Again!</button>
+        </div>
+    </div>
+
+    <script>
+        const animals = [
+            { 
+                id: 'circle-cat', 
+                shape: 'circle', 
+                color: '#FF6B9D',
+                emoji: '🐱',
+                sound: 'meow',
+                svg: '<circle cx="60" cy="60" r="50" fill="#FF6B9D" stroke="white" stroke-width="8"/>',
+                slotSvg: '<circle cx="60" cy="60" r="50" fill="none" stroke="#ccc" stroke-width="8" stroke-dasharray="10,5"/>'
+            },
+            { 
+                id: 'square-dog', 
+                shape: 'square', 
+                color: '#FFB347',
+                emoji: '🐶',
+                sound: 'woof',
+                svg: '<rect x="10" y="10" width="100" height="100" rx="15" fill="#FFB347" stroke="white" stroke-width="8"/>',
+                slotSvg: '<rect x="10" y="10" width="100" height="100" rx="15" fill="none" stroke="#ccc" stroke-width="8" stroke-dasharray="10,5"/>'
+            },
+            { 
+                id: 'triangle-bird', 
+                shape: 'triangle', 
+                color: '#87CEEB',
+                emoji: '🐦',
+                sound: 'tweet',
+                svg: '<polygon points="60,10 10,110 110,110" fill="#87CEEB" stroke="white" stroke-width="8"/>',
+                slotSvg: '<polygon points="60,10 10,110 110,110" fill="none" stroke="#ccc" stroke-width="8" stroke-dasharray="10,5"/>'
+            },
+            { 
+                id: 'star-duck', 
+                shape: 'star', 
+                color: '#FFD700',
+                emoji: '🦆',
+                sound: 'quack',
+                svg: '<path d="M 60,10 L 72,45 L 110,45 L 78,68 L 92,105 L 60,82 L 28,105 L 42,68 L 10,45 L 48,45 Z" fill="#FFD700" stroke="white" stroke-width="8"/>',
+                slotSvg: '<path d="M 60,10 L 72,45 L 110,45 L 78,68 L 92,105 L 60,82 L 28,105 L 42,68 L 10,45 L 48,45 Z" fill="none" stroke="#ccc" stroke-width="8" stroke-dasharray="10,5"/>'
+            }
+        ];
+
+        let draggedElement = null;
+        let placedAnimals = new Set();
+
+        function createSlots() {
+            const slotsContainer = document.getElementById('slots');
+            animals.forEach(animal => {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.dataset.shape = animal.shape;
+                slot.innerHTML = `
+                    <svg viewBox="0 0 120 120">${animal.slotSvg}</svg>
+                `;
+                slotsContainer.appendChild(slot);
+            });
+        }
+
+        function createPieces() {
+            const piecesContainer = document.getElementById('pieces');
+            // Shuffle animals for variety
+            const shuffled = [...animals].sort(() => Math.random() - 0.5);
+            
+            shuffled.forEach(animal => {
+                const piece = document.createElement('div');
+                piece.className = 'shape';
+                piece.draggable = true;
+                piece.dataset.shape = animal.shape;
+                piece.dataset.id = animal.id;
+                piece.innerHTML = `<svg viewBox="0 0 120 120">${animal.svg}</svg>`;
+                
+                piece.addEventListener('dragstart', handleDragStart);
+                piece.addEventListener('dragend', handleDragEnd);
+                piece.addEventListener('touchstart', handleTouchStart, {passive: false});
+                piece.addEventListener('touchmove', handleTouchMove, {passive: false});
+                piece.addEventListener('touchend', handleTouchEnd);
+                
+                piecesContainer.appendChild(piece);
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedElement = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            draggedElement = e.target.closest('.shape');
+            draggedElement.classList.add('dragging');
+            draggedElement.style.position = 'fixed';
+            draggedElement.style.zIndex = '1000';
+            updateTouchPosition(e.touches[0]);
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (draggedElement) {
+                updateTouchPosition(e.touches[0]);
+                checkSlotHighlight(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }
+
+        function updateTouchPosition(touch) {
+            if (draggedElement) {
+                draggedElement.style.left = (touch.clientX - 80) + 'px';
+                draggedElement.style.top = (touch.clientY - 80) + 'px';
+            }
+        }
+
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            if (draggedElement) {
+                const touch = e.changedTouches[0];
+                const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+                const slot = dropTarget?.closest('.slot');
+                
+                if (slot) {
+                    checkAndPlaceShape(slot);
+                }
+                
+                draggedElement.classList.remove('dragging');
+                draggedElement.style.position = '';
+                draggedElement.style.zIndex = '';
+                draggedElement.style.left = '';
+                draggedElement.style.top = '';
+                draggedElement = null;
+                
+                document.querySelectorAll('.slot').forEach(s => s.classList.remove('highlight'));
+            }
+        }
+
+        function checkSlotHighlight(x, y) {
+            document.querySelectorAll('.slot').forEach(slot => {
+                const rect = slot.getBoundingClientRect();
+                if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                    slot.classList.add('highlight');
+                } else {
+                    slot.classList.remove('highlight');
+                }
+            });
+        }
+
+        // Setup drag and drop for slots
+        document.addEventListener('DOMContentLoaded', () => {
+            const slots = document.getElementById('slots');
+            
+            slots.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const slot = e.target.closest('.slot');
+                if (slot && !slot.classList.contains('filled')) {
+                    slot.classList.add('highlight');
+                }
+            });
+            
+            slots.addEventListener('dragleave', (e) => {
+                const slot = e.target.closest('.slot');
+                if (slot) {
+                    slot.classList.remove('highlight');
+                }
+            });
+            
+            slots.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const slot = e.target.closest('.slot');
+                if (slot) {
+                    checkAndPlaceShape(slot);
+                }
+            });
+        });
+
+        function checkAndPlaceShape(slot) {
+            if (!draggedElement || slot.classList.contains('filled')) {
+                return;
+            }
+            
+            const pieceShape = draggedElement.dataset.shape;
+            const slotShape = slot.dataset.shape;
+            
+            slot.classList.remove('highlight');
+            
+            if (pieceShape === slotShape) {
+                // Correct match!
+                const animal = animals.find(a => a.id === draggedElement.dataset.id);
+                
+                // Replace the dashed outline with the filled shape
+                slot.querySelector('svg').innerHTML = animal.svg;
+                slot.classList.add('filled');
+                draggedElement.remove();
+                
+                playSound(animal.sound);
+                celebrate(animal.emoji);
+                createConfetti();
+                
+                placedAnimals.add(animal.id);
+                
+                // Check if all placed
+                if (placedAnimals.size === animals.length) {
+                    setTimeout(() => {
+                        celebrate('🎉');
+                        playSound('yay');
+                    }, 500);
+                }
+            } else {
+                // Wrong match - shake animation
+                slot.style.animation = 'none';
+                setTimeout(() => {
+                    slot.style.animation = '';
+                }, 10);
+            }
+            
+            draggedElement = null;
+        }
+
+        function playSound(soundType) {
+            const sounds = {
+                'meow': [400, 500],
+                'woof': [200, 250],
+                'tweet': [800, 900, 1000],
+                'quack': [300, 250],
+                'yay': [523, 659, 784]
+            };
+            
+            const frequencies = sounds[soundType] || [440];
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            frequencies.forEach((freq, i) => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = freq;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + i * 0.15);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.15 + 0.3);
+                
+                oscillator.start(audioContext.currentTime + i * 0.15);
+                oscillator.stop(audioContext.currentTime + i * 0.15 + 0.3);
+            });
+        }
+
+        function celebrate(emoji) {
+            const celebration = document.createElement('div');
+            celebration.className = 'celebration';
+            celebration.textContent = emoji;
+            document.body.appendChild(celebration);
+            setTimeout(() => celebration.remove(), 1000);
+        }
+
+        function createConfetti() {
+            const colors = ['#FF6B9D', '#FFB347', '#87CEEB', '#FFD700', '#98FB98'];
+            for (let i = 0; i < 15; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 0.3 + 's';
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 2000);
+            }
+        }
+
+        function resetGame() {
+            placedAnimals.clear();
+            document.getElementById('slots').innerHTML = '';
+            document.getElementById('pieces').innerHTML = '';
+            createSlots();
+            createPieces();
+            celebrate('🎮');
+        }
+
+        // Initialize game
+        createSlots();
+        createPieces();
+    </script>
+</body>
+</html>
