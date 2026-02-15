@@ -131,24 +131,32 @@
             }
             
             .shape-slots {
-                gap: 15px;
-                justify-content: flex-start;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 1fr 1fr;
+                gap: 20px;
+                justify-items: center;
+                overflow-x: visible;
             }
             
             .slot {
-                width: 130px;
-                height: 130px;
+                width: 140px;
+                height: 140px;
                 flex-shrink: 0;
             }
             
             .shape {
-                width: 120px;
-                height: 120px;
+                width: 130px;
+                height: 130px;
             }
             
             .shape-pieces {
-                gap: 15px;
-                min-height: 150px;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 1fr 1fr;
+                gap: 20px;
+                justify-items: center;
+                min-height: auto;
             }
             
             .reset-btn {
@@ -169,17 +177,21 @@
             }
             
             .shape-slots {
-                gap: 12px;
+                gap: 15px;
             }
             
             .slot {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .shape {
                 width: 110px;
                 height: 110px;
             }
             
-            .shape {
-                width: 100px;
-                height: 100px;
+            .shape-pieces {
+                gap: 15px;
             }
             
             .reset-btn {
